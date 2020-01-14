@@ -20,6 +20,8 @@ const (
 )
 
 var b64 = []byte(b64String)
+var ErrSmallInput = errors.New("Too small data size")
+var ErrSmallBlock = errors.New("Too small block size")
 
 type rollingState struct {
 	window []byte
@@ -127,7 +129,7 @@ func (state *ssdeepState) process(r *bufio.Reader) {
 // Returns an error when ssdeep could not be computed on the Reader.
 func FuzzyReader(f Reader, size int) (string, error) {
 	if size < minFileSize {
-		return "", errors.New("did not process files large enough to produce meaningful results")
+		return "", ErrSmallInput
 	}
 	state := newSsdeepState()
 	state.getBlockSize(size)
@@ -136,7 +138,7 @@ func FuzzyReader(f Reader, size int) (string, error) {
 		r := bufio.NewReader(f)
 		state.process(r)
 		if state.blockSize < blockMin {
-			return "", errors.New("unable to establish a sufficient block size")
+			return "", ErrSmallBlock
 		}
 		if len(state.hashString1) < spamSumLength/2 {
 			state.blockSize = state.blockSize / 2
