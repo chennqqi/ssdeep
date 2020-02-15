@@ -11,7 +11,7 @@ import (
 
 const (
 	rollingWindow uint32 = 7
-	blockMin             = 3
+	blockMin      int64  = 3
 	spamSumLength        = 64
 	minFileSize          = 4096
 	hashPrime     uint32 = 0x01000193
@@ -37,7 +37,7 @@ func (rs rollingState) rollSum() uint32 {
 
 type ssdeepState struct {
 	rollingState rollingState
-	blockSize    int
+	blockSize    int64
 	hashString1  string
 	hashString2  string
 	blockHash1   uint32
@@ -81,7 +81,7 @@ func (state *ssdeepState) rollHash(c byte) {
 }
 
 // getBlockSize calculates the block size based on file size
-func (state *ssdeepState) getBlockSize(n int) {
+func (state *ssdeepState) getBlockSize(n int64) {
 	blockSize := blockMin
 	for blockSize*spamSumLength < n {
 		blockSize = blockSize * 2
@@ -93,7 +93,7 @@ func (state *ssdeepState) processByte(b byte) {
 	state.blockHash1 = sumHash(b, state.blockHash1)
 	state.blockHash2 = sumHash(b, state.blockHash2)
 	state.rollHash(b)
-	rh := int(state.rollingState.rollSum())
+	rh := int64(state.rollingState.rollSum())
 	if rh%state.blockSize == (state.blockSize - 1) {
 		if len(state.hashString1) < spamSumLength-1 {
 			state.hashString1 += string(b64[state.blockHash1%64])
@@ -127,7 +127,7 @@ func (state *ssdeepState) process(r *bufio.Reader) {
 // FuzzyReader computes the fuzzy hash of a Reader interface with a given input size.
 // It is the caller's responsibility to append the filename, if any, to result after computation.
 // Returns an error when ssdeep could not be computed on the Reader.
-func FuzzyReader(f Reader, size int) (string, error) {
+func FuzzyReader(f Reader, size int64) (string, error) {
 	if size < minFileSize {
 		return "", ErrSmallInput
 	}
@@ -190,9 +190,8 @@ func FuzzyFile(f *os.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	n := int(stat.Size())
 
-	result, err := FuzzyReader(f, n)
+	result, err := FuzzyReader(f, stat.Size())
 	if err != nil {
 		return "", err
 	}
@@ -208,7 +207,7 @@ func FuzzyBytes(buffer []byte) (string, error) {
 	n := len(buffer)
 	br := bytes.NewReader(buffer)
 
-	result, err := FuzzyReader(br, n)
+	result, err := FuzzyReader(br, int64(n))
 	if err != nil {
 		return "", err
 	}

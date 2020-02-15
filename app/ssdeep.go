@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/glaslos/ssdeep"
 	"os"
+
+	"github.com/chennqqi/ssdeep"
 )
 
 func main() {
